@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { User } from '@supabase/supabase-js'
 import Login from './components/Login'
-import TwilioCallerDashboard from './components/TwilioCallerDashboard'
-import TwilioAgentDashboard from './components/TwilioAgentDashboard'
+import SIPDashboard from './components/SIPDashboard'
 import { Toaster } from './components/ui/toaster'
 import { useToast } from './hooks/use-toast'
 
@@ -116,18 +115,13 @@ function App() {
         <Route 
           path="/" 
           element={
-            userRole === 'caller' ? <Navigate to="/caller" replace /> :
-            userRole === 'agent' ? <Navigate to="/agent" replace /> :
+            userRole ? <Navigate to="/dashboard" replace /> :
             <Navigate to="/login" replace />
           } 
         />
         <Route 
-          path="/caller" 
-          element={userRole === 'caller' ? <TwilioCallerDashboard /> : <Navigate to="/" replace />} 
-        />
-        <Route 
-          path="/agent" 
-          element={userRole === 'agent' ? <TwilioAgentDashboard /> : <Navigate to="/" replace />} 
+          path="/dashboard" 
+          element={userRole ? <SIPDashboard /> : <Navigate to="/" replace />} 
         />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/" replace />} />
