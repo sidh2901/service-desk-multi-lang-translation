@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { User } from '@supabase/supabase-js'
 import Login from './components/Login'
-import SIPDashboard from './components/SIPDashboard'
+import GoogleVoiceDashboard from './components/GoogleVoiceDashboard'
 import { Toaster } from './components/ui/toaster'
 import { useToast } from './hooks/use-toast'
 
@@ -121,7 +121,7 @@ function App() {
         />
         <Route 
           path="/dashboard" 
-          element={userRole ? <SIPDashboard /> : <Navigate to="/" replace />} 
+          element={userRole ? <GoogleVoiceDashboard /> : <Navigate to="/" replace />} 
         />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/" replace />} />
