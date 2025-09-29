@@ -368,6 +368,7 @@ export default function SIPDashboard() {
                   <p>• <strong>Zoiper</strong> is recommended for beginners</p>
                   <p>• <strong>Linphone</strong> for open source preference</p>
                   <p>• Install on your computer or phone</p>
+                  <p>• <strong>Important:</strong> You'll configure it as a "guest" account</p>
                 </div>
               </div>
 
@@ -379,9 +380,10 @@ export default function SIPDashboard() {
                 <div className="space-y-2 text-sm text-slate-700">
                   <p>• Open your SIP client</p>
                   <p>• Add new account/profile</p>
-                  <p>• <strong>SIP Server:</strong> <code className="bg-slate-100 px-1 rounded text-xs">sip.api.openai.com</code></p>
-                  <p>• <strong>Username:</strong> <code className="bg-slate-100 px-1 rounded text-xs">proj_PXdQACn4cQHgYaKFV9O2SuoF</code></p>
-                  <p>• <strong>No password needed</strong></p>
+                  <p>• <strong>Username:</strong> <code className="bg-slate-100 px-1 rounded text-xs">anonymous</code></p>
+                  <p>• <strong>Password:</strong> <code className="bg-slate-100 px-1 rounded text-xs">anonymous</code></p>
+                  <p>• <strong>Domain:</strong> <code className="bg-slate-100 px-1 rounded text-xs">sip.api.openai.com</code></p>
+                  <p>• <strong>Disable registration</strong> (important!)</p>
                 </div>
               </div>
 
@@ -391,7 +393,7 @@ export default function SIPDashboard() {
                   <h3 className="text-lg font-semibold text-slate-900">Make Test Call</h3>
                 </div>
                 <div className="space-y-2 text-sm text-slate-700">
-                  <p>• Dial the SIP URI (or use speed dial)</p>
+                  <p>• Call: <code className="bg-slate-100 px-1 rounded text-xs">proj_PXdQACn4cQHgYaKFV9O2SuoF@sip.api.openai.com</code></p>
                   <p>• Wait for AI to answer</p>
                   <p>• <strong>Speak in any language:</strong></p>
                   <p>• मराठी, Español, English, हिन्दी, Français, Deutsch</p>
