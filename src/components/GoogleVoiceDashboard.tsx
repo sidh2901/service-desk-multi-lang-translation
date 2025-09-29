@@ -279,7 +279,7 @@ export default function GoogleVoiceDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Google Voice forwards to OpenAI SIP</span>
+                    <span>Google Voice forwards to: sip:proj_PXdQACn4cQHgYaKFV9O2SuoF@sip.api.openai.com</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
@@ -393,7 +393,7 @@ export default function GoogleVoiceDashboard() {
                   <p>• In Google Voice settings</p>
                   <p>• Go to "Calls" → "Call forwarding"</p>
                   <p>• Add SIP endpoint as forwarding number</p>
-                  <p>• SIP: <code className="bg-slate-100 px-1 rounded text-xs">sip:proj_YOUR_ID@sip.api.openai.com</code></p>
+                  <p>• SIP: <code className="bg-slate-100 px-1 rounded text-xs">sip:proj_PXdQACn4cQHgYaKFV9O2SuoF@sip.api.openai.com</code></p>
                   <p>• ✅ Test by calling your Google Voice number!</p>
                 </div>
               </div>

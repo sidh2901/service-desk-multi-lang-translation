@@ -28,8 +28,7 @@ A professional call center application with **FREE Google Voice number** + OpenA
 
 ### 3. Forward Google Voice to OpenAI SIP
 - In Google Voice settings → Calls → Call forwarding
-- Add: `sip:proj_YOUR_PROJECT_ID@sip.api.openai.com`
-- Replace `YOUR_PROJECT_ID` with your actual project ID
+- Add: `sip:proj_PXdQACn4cQHgYaKFV9O2SuoF@sip.api.openai.com`
 
 ### 4. Test Your Setup
 - Call your Google Voice number from any phone
