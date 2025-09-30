@@ -51,14 +51,17 @@ export default function AgentDashboard() {
   useEffect(() => {
     if (user) {
       subscribeToIncomingCalls()
+      startPollingForCalls()
       // Update availability status when component mounts
       updateAvailabilityStatus()
       
       // Set up periodic availability updates
       const availabilityInterval = setInterval(updateAvailabilityStatus, 30000)
+      const pollingInterval = setInterval(pollForWaitingCalls, 2000) // Poll every 2 seconds
       
       return () => {
         clearInterval(availabilityInterval)
+        clearInterval(pollingInterval)
       }
     }
   }, [user])
@@ -119,6 +122,52 @@ export default function AgentDashboard() {
     }
   }
   
+  const pollForWaitingCalls = async () => {
+    if (!user || !isAvailable) return
+    
+    try {
+      const { data: waitingCalls, error } = await supabase
+        .from('call_sessions')
+        .select('*')
+        .eq('status', 'waiting')
+        .is('agent_id', null)
+        .order('started_at', { ascending: true })
+
+      if (error) {
+        console.error('❌ AGENT: Error polling for calls:', error)
+        return
+      }
+
+      if (waitingCalls && waitingCalls.length > 0) {
+        console.log(`🔍 AGENT: Found ${waitingCalls.length} waiting calls via polling`)
+        
+        // Check if we have new calls that aren't in our current list
+        const newCalls = waitingCalls.filter(call => 
+          !incomingCalls.some(existing => existing.id === call.id)
+        )
+        
+        if (newCalls.length > 0) {
+          console.log(`📞 AGENT: Adding ${newCalls.length} new calls from polling`)
+          setIncomingCalls(prev => [...prev, ...newCalls])
+          
+          newCalls.forEach(call => {
+            toast({ 
+              title: 'Incoming Call!', 
+              description: `Caller needs help in ${call.caller_language}`,
+            })
+          })
+        }
+      }
+    } catch (error) {
+      console.error('❌ AGENT: Polling error:', error)
+    }
+  }
+
+  const startPollingForCalls = () => {
+    console.log('🔍 AGENT: Starting call polling backup system')
+    pollForWaitingCalls() // Initial poll
+  }
+
   const subscribeToIncomingCalls = () => {
     if (!user) return
 
