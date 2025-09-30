@@ -35,12 +35,6 @@ export default function AgentDashboard() {
   useEffect(() => {
     fetchUserProfile()
     
-    // Update availability status in database
-    updateAvailabilityStatus()
-    
-    // Set up periodic availability updates
-    const availabilityInterval = setInterval(updateAvailabilityStatus, 30000) // Update every 30 seconds
-    
     // Simulate call timer
     let interval: NodeJS.Timeout
     if (callState === 'connected') {
@@ -51,13 +45,21 @@ export default function AgentDashboard() {
     
     return () => {
       clearInterval(interval)
-      clearInterval(availabilityInterval)
     }
   }, [callState])
 
   useEffect(() => {
     if (user) {
       subscribeToIncomingCalls()
+      // Update availability status when component mounts
+      updateAvailabilityStatus()
+      
+      // Set up periodic availability updates
+      const availabilityInterval = setInterval(updateAvailabilityStatus, 30000)
+      
+      return () => {
+        clearInterval(availabilityInterval)
+      }
     }
   }, [user])
 
@@ -81,6 +83,7 @@ export default function AgentDashboard() {
         if (profile) {
           setUser(profile)
           setLanguage(profile.language)
+          setIsAvailable(profile.is_available || false)
         }
       }
     } catch (error) {
@@ -92,7 +95,7 @@ export default function AgentDashboard() {
     if (!user) return
     
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_profiles')
         .update({ 
           is_available: isAvailable,
@@ -100,7 +103,15 @@ export default function AgentDashboard() {
         })
         .eq('id', user.id)
         
-      console.log(`Agent ${user.name} availability updated: ${isAvailable}`)
+      if (error) {
+        console.error('Error updating availability:', error)
+        // If columns don't exist, try to add them
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          console.log('Availability columns missing, they may need to be added manually')
+        }
+      } else {
+        console.log(`Agent ${user.name} availability updated: ${isAvailable}`)
+      }
     } catch (error) {
       console.error('Error updating availability:', error)
     }

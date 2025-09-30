@@ -85,22 +85,47 @@ export default function CallerDashboard() {
 
   const fetchAvailableAgents = async () => {
     try {
+      console.log('Fetching available agents...')
+      
+      // First, try to get all agents to see what's in the database
+      const { data: allAgents, error: allError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('role', 'agent')
+
+      if (allError) {
+        console.error('Error fetching all agents:', allError)
+        return
+      }
+      
+      console.log('All agents in database:', allAgents)
+      
+      // Try to get available agents (with fallback if columns don't exist)
       const { data: agents, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('role', 'agent')
-        .eq('is_available', true)
-        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Active in last 5 minutes
 
-      if (error) throw error
+
+      if (error) {
+        console.error('Error fetching agents:', error)
+        return
+      }
       
-      const agentsWithStatus: AgentWithStatus[] = (agents || []).map(agent => ({
-        ...agent,
-        is_available: true // Already filtered by is_available = true
-      }))
+      // Filter available agents (handle case where columns might not exist)
+      const agentsWithStatus: AgentWithStatus[] = (agents || []).map(agent => {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        const isRecentlyActive = agent.last_seen ? agent.last_seen >= fiveMinutesAgo : true
+        const isAvailable = agent.is_available !== undefined ? agent.is_available : true
+        
+        return {
+          ...agent,
+          is_available: isAvailable && isRecentlyActive
+        }
+      }).filter(agent => agent.is_available)
       
       setAvailableAgents(agentsWithStatus)
-      console.log(`Found ${agentsWithStatus.length} available agents`)
+      console.log(`Found ${agentsWithStatus.length} available agents out of ${agents?.length || 0} total agents`)
     } catch (error) {
       console.error('Error fetching agents:', error)
     }
