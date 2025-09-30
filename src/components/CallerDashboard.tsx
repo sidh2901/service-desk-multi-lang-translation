@@ -98,7 +98,7 @@ export default function CallerDashboard() {
         return
       }
       
-      console.log('All agents in database:', allAgents)
+      console.log('All agents in database:', allAgents?.length || 0, allAgents)
       
       // Try to get available agents (with fallback if columns don't exist)
       const { data: agents, error } = await supabase
@@ -118,6 +118,8 @@ export default function CallerDashboard() {
         const isRecentlyActive = agent.last_seen ? agent.last_seen >= fiveMinutesAgo : true
         const isAvailable = agent.is_available !== undefined ? agent.is_available : true
         
+        console.log(`Agent ${agent.name}: is_available=${agent.is_available}, last_seen=${agent.last_seen}, isRecentlyActive=${isRecentlyActive}`)
+        
         return {
           ...agent,
           is_available: isAvailable && isRecentlyActive
@@ -126,6 +128,15 @@ export default function CallerDashboard() {
       
       setAvailableAgents(agentsWithStatus)
       console.log(`Found ${agentsWithStatus.length} available agents out of ${agents?.length || 0} total agents`)
+      
+      if (agentsWithStatus.length === 0 && (agents?.length || 0) > 0) {
+        console.log('No available agents found. Reasons could be:')
+        agents?.forEach(agent => {
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+          const isRecentlyActive = agent.last_seen ? agent.last_seen >= fiveMinutesAgo : true
+          console.log(`- ${agent.name}: is_available=${agent.is_available}, recently_active=${isRecentlyActive}`)
+        })
+      }
     } catch (error) {
       console.error('Error fetching agents:', error)
     }

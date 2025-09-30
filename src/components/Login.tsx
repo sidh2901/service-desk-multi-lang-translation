@@ -189,7 +189,7 @@ export default function Login() {
                         Agent
                       </Button>
                     </div>
-                    <p className="text-xs text-blue-700 mt-2">Click to auto-fill demo credentials</p>
+                    <p className="text-xs text-blue-700 mt-2">Click to auto-fill demo credentials. Agent profile will be created automatically.</p>
                   </div>
                 </form>
               </TabsContent>

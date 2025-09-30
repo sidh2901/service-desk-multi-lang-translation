@@ -56,9 +56,12 @@ function App() {
         }
         throw error
       } else if (!data) {
-        // Create default profile
+        // Create default profile with proper demo data
         const defaultRole = userEmail.includes('agent') ? 'agent' : 'caller'
-        const defaultName = userEmail.split('@')[0]
+        const defaultName = userEmail === 'agent@demo.com' ? 'Demo Agent' : 
+                           userEmail === 'caller@demo.com' ? 'Demo Caller' :
+                           userEmail.split('@')[0]
+        const defaultLanguage = userEmail === 'agent@demo.com' ? 'spanish' : 'english'
         
         const { data: newProfile, error: createError } = await supabase
           .from('user_profiles')
@@ -67,7 +70,9 @@ function App() {
             email: userEmail,
             role: defaultRole,
             name: defaultName,
-            language: 'english'
+            language: defaultLanguage,
+            is_available: defaultRole === 'agent' ? true : null,
+            last_seen: defaultRole === 'agent' ? new Date().toISOString() : null
           })
           .select('role')
           .single()
@@ -77,7 +82,7 @@ function App() {
         
         toast({
           title: "Profile Created",
-          description: `Welcome! Your profile has been set up as a ${defaultRole}.`
+          description: `Welcome ${defaultName}! Your profile has been set up as a ${defaultRole}.`
         })
       } else {
         setUserRole(data.role)
