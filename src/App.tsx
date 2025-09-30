@@ -19,7 +19,8 @@ function App() {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.log('Session error detected:', error.message)
-        if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT'))) {
+        if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT')) || 
+            error.status === 403) {
           supabase.auth.signOut()
           setUser(null)
           setUserRole(null)
@@ -65,9 +66,18 @@ function App() {
         .maybeSingle()
 
       if (error) {
-        if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT'))) {
+        if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT')) ||
+            error.code === 'session_not_found' || error.status === 403) {
           console.log('Invalid session detected, signing out...')
           await supabase.auth.signOut()
+          setUser(null)
+          setUserRole(null)
+          setLoading(false)
+          toast({
+            title: "Session Expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive"
+          })
           return
         }
         throw error
