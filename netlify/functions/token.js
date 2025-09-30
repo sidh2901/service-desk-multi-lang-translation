@@ -1,15 +1,28 @@
-export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+const fetch = require('node-fetch');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+exports.handler = async (event, context) => {
+  // Set CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Content-Type': 'application/json'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
   }
 
   try {
@@ -36,12 +49,20 @@ export default async function handler(req, res) {
     const data = await response.json();
     console.log('✅ OpenAI ephemeral token created successfully');
     
-    res.status(200).json(data);
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(data)
+    };
   } catch (error) {
     console.error('❌ Error creating ephemeral token:', error);
-    res.status(500).json({ 
-      error: 'Failed to create ephemeral token',
-      details: error.message 
-    });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to create ephemeral token',
+        details: error.message 
+      })
+    };
   }
-}
+};
