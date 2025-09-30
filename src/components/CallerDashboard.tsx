@@ -266,7 +266,7 @@ export default function CallerDashboard() {
                           </SelectItem>
                         ))}
                         {availableAgents.filter(agent => agent.is_available).length === 0 && (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="no-agents-available" disabled>
                             No agents available
                           </SelectItem>
                         )}
