@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { startRealtime, type RealtimeHandle } from '../lib/realtime'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
@@ -31,6 +32,10 @@ export default function AgentDashboard() {
   const [isAvailable, setIsAvailable] = useState(true)
   const [currentCall, setCurrentCall] = useState<any>(null)
   const [incomingCalls, setIncomingCalls] = useState<any[]>([])
+  const [realtimeHandle, setRealtimeHandle] = useState<RealtimeHandle | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const [lastTranslation, setLastTranslation] = useState('')
+  const [callerSpeech, setCallerSpeech] = useState('')
 
   useEffect(() => {
     fetchUserProfile()
@@ -280,8 +285,7 @@ export default function AgentDashboard() {
           .eq('id', callSession.id)
 
         if (!connectError) {
-          setCallState('connected')
-          toast({ title: 'Call connected!', description: 'You are now speaking with the caller' })
+          await startAITranslation(callSession)
         }
       }, 1500)
 
@@ -298,8 +302,76 @@ export default function AgentDashboard() {
     }
   }
 
+  const startAITranslation = async (callSession: any) => {
+    try {
+      console.log('🤖 Starting AI translation system...')
+      setIsTranslating(true)
+      
+      const handle = await startRealtime({
+        targetLanguage: getLanguageName(callSession.caller_language),
+        voice: 'coral',
+        onPartial: (text) => {
+          setLastTranslation(text)
+        },
+        onFinal: (text) => {
+          console.log('🗣️ AI Translation:', text)
+          setLastTranslation(text)
+        },
+        onSourceFinal: (text) => {
+          console.log('👤 Caller said:', text)
+          setCallerSpeech(text)
+        },
+        onError: (error) => {
+          console.error('❌ AI Translation error:', error)
+          toast({
+            title: 'Translation Error',
+            description: 'AI translation encountered an issue',
+            variant: 'destructive'
+          })
+        }
+      })
+      
+      setRealtimeHandle(handle)
+      setCallState('connected')
+      
+      toast({ 
+        title: 'Call connected!', 
+        description: 'AI translation is now active' 
+      })
+      
+    } catch (error) {
+      console.error('❌ Failed to start AI translation:', error)
+      toast({
+        title: 'Translation Failed',
+        description: 'Could not start AI translation. Check your microphone permissions.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const getLanguageName = (code: string) => {
+    const langMap: { [key: string]: string } = {
+      'marathi': 'Marathi',
+      'spanish': 'Spanish', 
+      'english': 'English',
+      'hindi': 'Hindi',
+      'french': 'French',
+      'german': 'German'
+    }
+    return langMap[code] || 'English'
+  }
   const endCall = async () => {
     try {
+      // Stop AI translation
+      if (realtimeHandle) {
+        realtimeHandle.hangup()
+        setRealtimeHandle(null)
+      }
+      
+      setIsTranslating(false)
+      setLastTranslation('')
+      setCallerSpeech('')
+      
       if (currentCall) {
         await supabase
           .from('call_sessions')
@@ -484,6 +556,29 @@ export default function AgentDashboard() {
                 </div>
               )}
 
+              {/* AI Translation Status */}
+              {callState === 'connected' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${isTranslating ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                      <span className="text-sm font-medium text-green-900">
+                        AI Translation {isTranslating ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    {callerSpeech && (
+                      <div className="text-xs text-green-700 mb-1">
+                        <strong>Caller:</strong> {callerSpeech}
+                      </div>
+                    )}
+                    {lastTranslation && (
+                      <div className="text-xs text-green-800">
+                        <strong>Translation:</strong> {lastTranslation}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* Language Selection */}
               <div className="space-y-3">
                 <label className="text-sm font-medium text-slate-700">Your Language</label>
@@ -514,6 +609,7 @@ export default function AgentDashboard() {
                     <p>Status: {currentCall.status}</p>
                     <p>Caller Language: {getLangInfo(currentCall.caller_language)?.label}</p>
                     <p>Your Language: {getLangInfo(language)?.label}</p>
+                    <p>AI Translation: {isTranslating ? '🟢 Active' : '🔴 Inactive'}</p>
                   </div>
                 </div>
               )}

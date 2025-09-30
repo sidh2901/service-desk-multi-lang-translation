@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { startRealtime, type RealtimeHandle } from '../lib/realtime'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
@@ -41,6 +42,10 @@ export default function CallerDashboard() {
   const [isMuted, setIsMuted] = useState(false)
   const [language, setLanguage] = useState('english')
   const [currentCall, setCurrentCall] = useState<any>(null)
+  const [realtimeHandle, setRealtimeHandle] = useState<RealtimeHandle | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const [lastTranslation, setLastTranslation] = useState('')
+  const [agentSpeech, setAgentSpeech] = useState('')
 
   useEffect(() => {
     fetchUserProfile()
@@ -214,8 +219,7 @@ export default function CallerDashboard() {
               setCallState('calling')
               toast({ title: 'Agent found!', description: 'Connecting your call...' })
             } else if (updatedCall.status === 'connected') {
-              setCallState('connected')
-              toast({ title: 'Call connected!', description: 'You are now speaking with an agent' })
+              startAITranslation(updatedCall)
             } else if (updatedCall.status === 'ended') {
               setCallState('ended')
               setTimeout(() => {
@@ -247,8 +251,76 @@ export default function CallerDashboard() {
     }
   }
 
+  const startAITranslation = async (callSession: any) => {
+    try {
+      console.log('🤖 CALLER: Starting AI translation system...')
+      setIsTranslating(true)
+      
+      const handle = await startRealtime({
+        targetLanguage: getLanguageName(callSession.agent_language || 'spanish'),
+        voice: 'coral',
+        onPartial: (text) => {
+          setLastTranslation(text)
+        },
+        onFinal: (text) => {
+          console.log('🗣️ AI Translation:', text)
+          setLastTranslation(text)
+        },
+        onSourceFinal: (text) => {
+          console.log('👤 Agent said:', text)
+          setAgentSpeech(text)
+        },
+        onError: (error) => {
+          console.error('❌ AI Translation error:', error)
+          toast({
+            title: 'Translation Error',
+            description: 'AI translation encountered an issue',
+            variant: 'destructive'
+          })
+        }
+      })
+      
+      setRealtimeHandle(handle)
+      setCallState('connected')
+      
+      toast({ 
+        title: 'Call connected!', 
+        description: 'AI translation is now active' 
+      })
+      
+    } catch (error) {
+      console.error('❌ CALLER: Failed to start AI translation:', error)
+      toast({
+        title: 'Translation Failed',
+        description: 'Could not start AI translation. Check your microphone permissions.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const getLanguageName = (code: string) => {
+    const langMap: { [key: string]: string } = {
+      'marathi': 'Marathi',
+      'spanish': 'Spanish', 
+      'english': 'English',
+      'hindi': 'Hindi',
+      'french': 'French',
+      'german': 'German'
+    }
+    return langMap[code] || 'English'
+  }
   const endCall = async () => {
     try {
+      // Stop AI translation
+      if (realtimeHandle) {
+        realtimeHandle.hangup()
+        setRealtimeHandle(null)
+      }
+      
+      setIsTranslating(false)
+      setLastTranslation('')
+      setAgentSpeech('')
+      
       // Cleanup subscription
       if (currentCall?.subscription) {
         currentCall.subscription.unsubscribe()
@@ -448,6 +520,29 @@ export default function CallerDashboard() {
                 </div>
               )}
 
+              {/* AI Translation Status */}
+              {callState === 'connected' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${isTranslating ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                      <span className="text-sm font-medium text-green-900">
+                        AI Translation {isTranslating ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    {agentSpeech && (
+                      <div className="text-xs text-green-700 mb-1">
+                        <strong>Agent:</strong> {agentSpeech}
+                      </div>
+                    )}
+                    {lastTranslation && (
+                      <div className="text-xs text-green-800">
+                        <strong>Translation:</strong> {lastTranslation}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* Call Info */}
               {currentCall && (
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -456,6 +551,7 @@ export default function CallerDashboard() {
                     <p>Session ID: {currentCall.id.slice(-8)}</p>
                     <p>Status: {currentCall.status}</p>
                     <p>Your Language: {getLangInfo(language)?.label}</p>
+                    <p>AI Translation: {isTranslating ? '🟢 Active' : '🔴 Inactive'}</p>
                   </div>
                 </div>
               )}
