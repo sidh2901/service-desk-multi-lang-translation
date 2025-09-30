@@ -67,6 +67,7 @@ export default function AgentDashboard() {
       updateAvailabilityStatus()
     }
   }, [isAvailable, user])
+  
   const fetchUserProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -104,6 +105,7 @@ export default function AgentDashboard() {
       console.error('Error updating availability:', error)
     }
   }
+  
   const subscribeToIncomingCalls = () => {
     if (!user) return
 
@@ -205,26 +207,6 @@ export default function AgentDashboard() {
       // Remove from incoming calls
       setIncomingCalls(prev => prev.filter(call => call.id !== callSession.id))
       
-    } catch (error: any) {
-      console.error('Error answering call:', error)
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to answer call',
-        variant: 'destructive'
-      })
-    }
-  }
-        .from('call_sessions')
-        .update({ 
-          status: 'connected',
-          agent_language: language
-        })
-        .eq('id', callSession.id)
-
-      // Remove from incoming calls
-      setIncomingCalls(prev => prev.filter(call => call.id !== callSession.id))
-      
-      toast({ title: 'Call connected!', description: 'You are now speaking with the caller' })
     } catch (error: any) {
       console.error('Error answering call:', error)
       toast({ 
