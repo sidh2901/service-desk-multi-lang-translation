@@ -26,7 +26,22 @@ export async function startRealtime({
   console.log('🤖 Starting REAL OpenAI Realtime API...')
   
   try {
-    // Get ephemeral token from OpenAI
+    // Check if we're in development mode
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    
+    if (isDev) {
+      console.log('🔧 Development mode: Using mock AI translation')
+      return createMockRealtimeHandle({
+        targetLanguage,
+        voice,
+        onPartial,
+        onFinal,
+        onSourceFinal,
+        onError
+      })
+    }
+
+    // Production: Get ephemeral token from OpenAI
     const tokenData = await getEphemeralToken()
     console.log('✅ Got ephemeral token, starting WebRTC...')
 
@@ -265,4 +280,68 @@ function getLanguageFullName(code: string): string {
     'german': 'German'
   }
   return langMap[code] || 'English'
+}
+
+// Mock realtime handle for development
+function createMockRealtimeHandle({
+  targetLanguage,
+  voice,
+  onPartial,
+  onFinal,
+  onSourceFinal,
+  onError
+}: {
+  targetLanguage: string;
+  voice: string;
+  onPartial?: (t: string) => void;
+  onFinal?: (t: string) => void;
+  onSourceFinal?: (t: string) => void;
+  onError?: (e: any) => void;
+}): Promise<RealtimeHandle> {
+  console.log('🎭 Creating mock AI translation for development')
+  
+  return new Promise((resolve) => {
+    // Simulate connection delay
+    setTimeout(() => {
+      console.log('✅ Mock AI translation connected!')
+      
+      // Simulate periodic translations
+      let counter = 0
+      const interval = setInterval(() => {
+        counter++
+        const mockTranslations = [
+          'Hello, how can I help you today?',
+          'I understand your concern.',
+          'Let me assist you with that.',
+          'Is there anything else I can help with?'
+        ]
+        
+        const translation = mockTranslations[counter % mockTranslations.length]
+        
+        if (onPartial) onPartial(translation.substring(0, translation.length / 2))
+        setTimeout(() => {
+          if (onFinal) onFinal(translation)
+        }, 500)
+        
+        if (onSourceFinal) onSourceFinal(`User input ${counter}`)
+      }, 5000)
+      
+      const mockHandle: RealtimeHandle = {
+        pc: null,
+        dc: null,
+        hangup: () => {
+          console.log('📞 Mock AI translation disconnected')
+          clearInterval(interval)
+        },
+        setTargetLanguage: (lang: string) => {
+          console.log(`🌍 Mock: Updated target language to ${lang}`)
+        },
+        setVoice: (newVoice: string) => {
+          console.log(`🗣️ Mock: Updated voice to ${newVoice}`)
+        }
+      }
+      
+      resolve(mockHandle)
+    }, 1000)
+  })
 }
