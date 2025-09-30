@@ -95,6 +95,7 @@ export default function AgentDashboard() {
     if (!user) return
     
     try {
+      console.log(`Updating agent ${user.name} availability to: ${isAvailable}`)
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
@@ -104,11 +105,12 @@ export default function AgentDashboard() {
         .eq('id', user.id)
         
       if (error) {
-        console.error('Error updating availability:', error)
-        // If columns don't exist, try to add them
-        if (error.message.includes('column') && error.message.includes('does not exist')) {
-          console.log('Availability columns missing, they may need to be added manually')
-        }
+        console.error('Error updating availability:', error.message)
+        toast({
+          title: "Database Error",
+          description: "Could not update availability. Please refresh the page.",
+          variant: "destructive"
+        })
       } else {
         console.log(`Agent ${user.name} availability updated: ${isAvailable}`)
       }

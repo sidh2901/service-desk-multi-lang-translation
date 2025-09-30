@@ -87,7 +87,44 @@ export default function CallerDashboard() {
     try {
       console.log('Fetching available agents...')
       
-      // First, try to get all agents to see what's in the database
+      // Use the new function to get available agents
+      const { data: availableAgentsData, error } = await supabase
+        .rpc('find_available_agents', { caller_language: language })
+
+      if (error) {
+        console.error('Error calling find_available_agents function:', error)
+        // Fallback to direct query
+        return fetchAvailableAgentsFallback()
+      }
+
+      console.log('Available agents from function:', availableAgentsData?.length || 0, availableAgentsData)
+      
+      const agentsWithStatus: AgentWithStatus[] = (availableAgentsData || []).map(agent => ({
+        id: agent.agent_id,
+        name: agent.agent_name,
+        email: agent.agent_email,
+        language: agent.agent_language,
+        role: 'agent',
+        created_at: '',
+        is_available: agent.is_available,
+        last_seen: agent.last_seen
+      }))
+      
+      setAvailableAgents(agentsWithStatus)
+      console.log(`Found ${agentsWithStatus.length} available agents using database function`)
+      
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+      // Fallback to direct query
+      fetchAvailableAgentsFallback()
+    }
+  }
+
+  const fetchAvailableAgentsFallback = async () => {
+    try {
+      console.log('Using fallback method to fetch agents...')
+      
+      // Get all agents to see what's in the database
       const { data: allAgents, error: allError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -100,20 +137,8 @@ export default function CallerDashboard() {
       
       console.log('All agents in database:', allAgents?.length || 0, allAgents)
       
-      // Try to get available agents (with fallback if columns don't exist)
-      const { data: agents, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('role', 'agent')
-
-
-      if (error) {
-        console.error('Error fetching agents:', error)
-        return
-      }
-      
       // Filter available agents (handle case where columns might not exist)
-      const agentsWithStatus: AgentWithStatus[] = (agents || []).map(agent => {
+      const agentsWithStatus: AgentWithStatus[] = (allAgents || []).map(agent => {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
         const isRecentlyActive = agent.last_seen ? agent.last_seen >= fiveMinutesAgo : true
         const isAvailable = agent.is_available !== undefined ? agent.is_available : true
@@ -129,9 +154,9 @@ export default function CallerDashboard() {
       setAvailableAgents(agentsWithStatus)
       console.log(`Found ${agentsWithStatus.length} available agents out of ${agents?.length || 0} total agents`)
       
-      if (agentsWithStatus.length === 0 && (agents?.length || 0) > 0) {
+      if (agentsWithStatus.length === 0 && (allAgents?.length || 0) > 0) {
         console.log('No available agents found. Reasons could be:')
-        agents?.forEach(agent => {
+        allAgents?.forEach(agent => {
           const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
           const isRecentlyActive = agent.last_seen ? agent.last_seen >= fiveMinutesAgo : true
           console.log(`- ${agent.name}: is_available=${agent.is_available}, recently_active=${isRecentlyActive}`)
