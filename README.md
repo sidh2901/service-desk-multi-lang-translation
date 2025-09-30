@@ -22,7 +22,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('login')
   const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
-  const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
   const { toast } = useToast()
 
   const [loginForm, setLoginForm] = useState({
