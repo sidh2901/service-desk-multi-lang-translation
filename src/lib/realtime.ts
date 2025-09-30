@@ -36,22 +36,41 @@ export async function startRealtime({
 }): Promise<RealtimeHandle> {
   try {
     // Get ephemeral token
+    console.log('🔑 Requesting ephemeral token...');
     const tokenResponse = await fetch('/api/token');
     if (!tokenResponse.ok) {
-      throw new Error(`Token request failed: ${await tokenResponse.text()}`);
+      const errorText = await tokenResponse.text();
+      console.error('❌ Token request failed:', errorText);
+      throw new Error(`Token request failed: ${tokenResponse.status} ${errorText}`);
     }
     
-    const data = await tokenResponse.json();
+    const responseText = await tokenResponse.text();
+    console.log('📄 Token response:', responseText.substring(0, 100) + '...');
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse token response as JSON:', parseError);
+      console.error('📄 Raw response:', responseText);
+      throw new Error('Invalid JSON response from token endpoint');
+    }
+    
     const EPHEMERAL_KEY = data?.client_secret?.value;
 
     if (!EPHEMERAL_KEY) {
+      console.error('❌ No ephemeral key in response:', data);
       throw new Error("No ephemeral key in response");
     }
+
+    console.log('✅ Got ephemeral token, starting WebRTC...');
 
     // Get user media
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
     });
+
+    console.log('🎤 Got user media stream');
 
     // Create peer connection
     const pc = new RTCPeerConnection({
@@ -86,6 +105,7 @@ export async function startRealtime({
     const setVoice = (v: string) => pushSessionUpdate({ voice: v });
 
     dc.onopen = () => {
+      console.log('📡 Data channel opened');
       dcOpen = true;
       setVoice(voice);
       setTargetLanguage(targetLanguage);
@@ -98,6 +118,8 @@ export async function startRealtime({
       } catch { 
         return; 
       }
+
+      console.log('📨 Received message:', msg.type);
 
       switch (msg.type) {
         case "input_audio_buffer.speech_started":
@@ -120,16 +142,19 @@ export async function startRealtime({
           buf = "";
           break;
         case "error":
+          console.error('❌ Realtime API error:', msg.error);
           onError?.(new Error(msg.error?.message || "Realtime error"));
           break;
       }
     });
 
     // Start the session using SDP
+    console.log('🤝 Creating WebRTC offer...');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     await waitForIceGathering(pc);
 
+    console.log('📡 Sending SDP to OpenAI...');
     const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
       body: pc.localDescription?.sdp ?? offer.sdp!,
@@ -140,7 +165,9 @@ export async function startRealtime({
     });
 
     if (!sdpResponse.ok) {
-      throw new Error(`SDP exchange failed: ${await sdpResponse.text()}`);
+      const errorText = await sdpResponse.text();
+      console.error('❌ SDP exchange failed:', errorText);
+      throw new Error(`SDP exchange failed: ${sdpResponse.status} ${errorText}`);
     }
 
     const answer = {
@@ -148,6 +175,8 @@ export async function startRealtime({
       sdp: await sdpResponse.text(),
     };
     await pc.setRemoteDescription(answer);
+
+    console.log('✅ AI Translation system started successfully!');
 
     const hangup = () => {
       try { dc.close(); } catch {}
@@ -158,6 +187,7 @@ export async function startRealtime({
 
     return { pc, dc, hangup, setTargetLanguage, setVoice };
   } catch (e) {
+    console.error('❌ startRealtime failed:', e);
     onError?.(e);
     throw e;
   }
