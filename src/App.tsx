@@ -16,7 +16,23 @@ function App() {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.log('Session error detected:', error.message)
+        if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT'))) {
+          supabase.auth.signOut()
+          setUser(null)
+          setUserRole(null)
+          setLoading(false)
+          toast({
+            title: "Session Expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive"
+          })
+          return
+        }
+      }
+      
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserRole(session.user.id, session.user.email || '')
