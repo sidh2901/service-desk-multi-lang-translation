@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { User } from '@supabase/supabase-js'
 import Login from './components/Login'
-import SIPDashboard from './components/SIPDashboard'
+import CallerDashboard from './components/CallerDashboard'
+import AgentDashboard from './components/AgentDashboard'
 import { Toaster } from './components/ui/toaster'
 import { useToast } from './hooks/use-toast'
 
@@ -48,7 +49,6 @@ function App() {
         .maybeSingle()
 
       if (error) {
-        // Handle invalid session errors by signing out
         if (error.message && (error.message.includes('session_not_found') || error.message.includes('JWT'))) {
           console.log('Invalid session detected, signing out...')
           await supabase.auth.signOut()
@@ -56,7 +56,7 @@ function App() {
         }
         throw error
       } else if (!data) {
-        // If no profile exists, create a default one
+        // Create default profile
         const defaultRole = userEmail.includes('agent') ? 'agent' : 'caller'
         const defaultName = userEmail.split('@')[0]
         
@@ -121,7 +121,11 @@ function App() {
         />
         <Route 
           path="/dashboard" 
-          element={userRole ? <SIPDashboard /> : <Navigate to="/" replace />} 
+          element={
+            userRole === 'caller' ? <CallerDashboard /> :
+            userRole === 'agent' ? <AgentDashboard /> :
+            <Navigate to="/" replace />
+          } 
         />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/" replace />} />
