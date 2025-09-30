@@ -141,22 +141,20 @@ export default function AgentDashboard() {
       if (waitingCalls && waitingCalls.length > 0) {
         console.log(`🔍 AGENT: Found ${waitingCalls.length} waiting calls via polling`)
         
-        // Check if we have new calls that aren't in our current list
-        const newCalls = waitingCalls.filter(call => 
-          !incomingCalls.some(existing => existing.id === call.id)
-        )
+        // Replace the entire list to avoid duplicates
+        setIncomingCalls(waitingCalls)
         
-        if (newCalls.length > 0) {
-          console.log(`📞 AGENT: Adding ${newCalls.length} new calls from polling`)
-          setIncomingCalls(prev => [...prev, ...newCalls])
-          
-          newCalls.forEach(call => {
-            toast({ 
-              title: 'Incoming Call!', 
-              description: `Caller needs help in ${call.caller_language}`,
-            })
+        // Only show toast for the first call if we don't have any calls yet
+        if (incomingCalls.length === 0 && waitingCalls.length > 0) {
+          console.log(`📞 AGENT: New call detected via polling`)
+          toast({ 
+            title: 'Incoming Call!', 
+            description: `Caller needs help in ${waitingCalls[0].caller_language}`,
           })
         }
+      } else {
+        // Clear calls if none are waiting
+        setIncomingCalls([])
       }
     } catch (error) {
       console.error('❌ AGENT: Polling error:', error)
