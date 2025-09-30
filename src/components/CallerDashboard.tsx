@@ -89,18 +89,18 @@ export default function CallerDashboard() {
         .from('user_profiles')
         .select('*')
         .eq('role', 'agent')
+        .eq('is_available', true)
+        .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Active in last 5 minutes
 
       if (error) throw error
       
-      // For now, simulate availability status
-      // In a real app, you'd track this in the database with last_seen timestamps
       const agentsWithStatus: AgentWithStatus[] = (agents || []).map(agent => ({
         ...agent,
-        is_available: Math.random() > 0.3, // Simulate 70% availability
-        last_seen: new Date().toISOString()
+        is_available: true // Already filtered by is_available = true
       }))
       
       setAvailableAgents(agentsWithStatus)
+      console.log(`Found ${agentsWithStatus.length} available agents`)
     } catch (error) {
       console.error('Error fetching agents:', error)
     }
@@ -124,10 +124,10 @@ export default function CallerDashboard() {
         .from('call_sessions')
         .insert({
           caller_id: user.id,
-          agent_id: selectedAgent,
-          status: 'ringing',
+          agent_id: null, // Will be assigned when agent answers
+          status: 'waiting',
           caller_language: language,
-          agent_language: 'english'
+          agent_language: null
         })
         .select()
         .single()
@@ -136,13 +136,42 @@ export default function CallerDashboard() {
 
       setCurrentCall(session)
       
-      // Simulate call connection
-      setTimeout(() => {
-        setCallState('connected')
-        toast({ title: 'Call connected!', description: 'You are now speaking with an agent' })
-      }, 2000)
+      // Subscribe to call status updates
+      const callSubscription = supabase
+        .channel(`call_${session.id}`)
+        .on('postgres_changes',
+          {
+            event: 'UPDATE',
+            table: 'call_sessions',
+            filter: `id=eq.${session.id}`
+          },
+          (payload) => {
+            const updatedCall = payload.new
+            console.log('Call status updated:', updatedCall.status)
+            
+            if (updatedCall.status === 'ringing') {
+              setCallState('calling')
+              toast({ title: 'Agent found!', description: 'Connecting your call...' })
+            } else if (updatedCall.status === 'connected') {
+              setCallState('connected')
+              toast({ title: 'Call connected!', description: 'You are now speaking with an agent' })
+            } else if (updatedCall.status === 'ended') {
+              setCallState('ended')
+              setTimeout(() => {
+                setCallState('idle')
+                setCurrentCall(null)
+                setCallDuration(0)
+              }, 2000)
+            }
+          }
+        )
+        .subscribe()
 
-      toast({ title: 'Calling...', description: 'Connecting to agent' })
+      // Store subscription for cleanup
+      setCurrentCall(prev => ({ ...prev, subscription: callSubscription }))
+      
+
+      toast({ title: 'Calling...', description: 'Looking for available agents...' })
 
     } catch (error: any) {
       toast({ 
@@ -156,6 +185,11 @@ export default function CallerDashboard() {
 
   const endCall = async () => {
     try {
+      // Cleanup subscription
+      if (currentCall?.subscription) {
+        currentCall.subscription.unsubscribe()
+      }
+      
       if (currentCall) {
         await supabase
           .from('call_sessions')

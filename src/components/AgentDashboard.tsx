@@ -91,18 +91,15 @@ export default function AgentDashboard() {
     if (!user) return
     
     try {
-      // In a real implementation, you'd update a last_seen timestamp and availability status
-      // For now, we'll just log the status
-      console.log(`Agent ${user.name} availability: ${isAvailable}`)
-      
-      // You could add a field to track this in the database:
-      // await supabase
-      //   .from('user_profiles')
-      //   .update({ 
-      //     is_available: isAvailable,
-      //     last_seen: new Date().toISOString()
-      //   })
-      //   .eq('id', user.id)
+      await supabase
+        .from('user_profiles')
+        .update({ 
+          is_available: isAvailable,
+          last_seen: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        
+      console.log(`Agent ${user.name} availability updated: ${isAvailable}`)
     } catch (error) {
       console.error('Error updating availability:', error)
     }
@@ -110,38 +107,113 @@ export default function AgentDashboard() {
   const subscribeToIncomingCalls = () => {
     if (!user) return
 
-    const subscription = supabase
+    // Subscribe to call sessions where this agent is assigned
+    const callSubscription = supabase
       .channel('incoming_calls')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           table: 'call_sessions',
-          filter: `agent_id=eq.${user.id}`
+          filter: `status=eq.waiting`
         }, 
         (payload) => {
-          console.log('Incoming call:', payload.new)
-          setIncomingCalls(prev => [...prev, payload.new])
-          setCallState('incoming')
-          toast({ 
-            title: 'Incoming Call!', 
-            description: 'A caller is trying to reach you',
-          })
+          const newCall = payload.new
+          console.log('New call session created:', newCall)
+          
+          // Only show to available agents
+          if (isAvailable && !newCall.agent_id) {
+            setIncomingCalls(prev => [...prev, newCall])
+            setCallState('incoming')
+            toast({ 
+              title: 'Incoming Call!', 
+              description: 'A caller is waiting for assistance',
+            })
+          }
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: 'UPDATE',
+          table: 'call_sessions',
+          filter: `agent_id=eq.${user.id}`
+        },
+        (payload) => {
+          const updatedCall = payload.new
+          console.log('Call session updated:', updatedCall)
+          
+          if (updatedCall.status === 'ringing') {
+            setCurrentCall(updatedCall)
+            setCallState('incoming')
+          } else if (updatedCall.status === 'connected') {
+            setCallState('connected')
+          } else if (updatedCall.status === 'ended') {
+            setCallState('ended')
+            setTimeout(() => {
+              setCallState('idle')
+              setCurrentCall(null)
+              setCallDuration(0)
+            }, 2000)
+          }
         }
       )
       .subscribe()
 
     return () => {
-      subscription.unsubscribe()
+      callSubscription.unsubscribe()
     }
   }
 
   const answerCall = async (callSession: any) => {
     try {
+      // First, claim the call by assigning this agent
+      const { error: claimError } = await supabase
+        .from('call_sessions')
+        .update({ 
+          agent_id: user.id,
+          status: 'ringing',
+          agent_language: language
+        })
+        .eq('id', callSession.id)
+        .is('agent_id', null) // Only if not already claimed
+
+      if (claimError) {
+        console.error('Error claiming call:', claimError)
+        toast({ 
+          title: 'Call unavailable', 
+          description: 'This call may have been answered by another agent',
+          variant: 'destructive'
+        })
+        return
+      }
+
       setCurrentCall(callSession)
-      setCallState('connected')
+      setCallState('incoming')
       
-      // Update call session
-      await supabase
+      // After a brief moment, connect the call
+      setTimeout(async () => {
+        const { error: connectError } = await supabase
+          .from('call_sessions')
+          .update({ status: 'connected' })
+          .eq('id', callSession.id)
+
+        if (!connectError) {
+          setCallState('connected')
+          toast({ title: 'Call connected!', description: 'You are now speaking with the caller' })
+        }
+      }, 1500)
+
+      // Remove from incoming calls
+      setIncomingCalls(prev => prev.filter(call => call.id !== callSession.id))
+      
+    } catch (error: any) {
+      console.error('Error answering call:', error)
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to answer call',
+        variant: 'destructive'
+      })
+    }
+  }
         .from('call_sessions')
         .update({ 
           status: 'connected',
