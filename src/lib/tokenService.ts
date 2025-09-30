@@ -3,7 +3,7 @@ export async function getEphemeralToken() {
   console.log('🔑 Requesting real OpenAI ephemeral token...')
   
   try {
-    const response = await fetch('/api/token', {
+    const response = await fetch('/.netlify/functions/token', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
