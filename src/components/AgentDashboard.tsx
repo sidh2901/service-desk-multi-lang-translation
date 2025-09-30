@@ -124,18 +124,17 @@ export default function AgentDashboard() {
 
     console.log(`🔥 AGENT: Setting up call subscriptions for agent: ${user.name} (${user.id})`)
     
-    // Subscribe to ALL waiting calls - simplified approach
+    // Subscribe to ALL call insertions and updates
     const callSubscription = supabase
-      .channel('agent_calls_' + user.id)
+      .channel('all_calls_' + user.id)
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           table: 'call_sessions',
-          // Remove filter to catch ALL new calls
         }, 
         (payload) => {
           const newCall = payload.new
-          console.log('🔔 AGENT: New call detected:', newCall)
+          console.log('🔔 AGENT: New call INSERT detected:', newCall)
           
           // Only show waiting calls to available agents
           if (newCall.status === 'waiting' && isAvailable) {
@@ -146,7 +145,7 @@ export default function AgentDashboard() {
               description: `Caller needs help in ${newCall.caller_language}`,
             })
           } else {
-            console.log(`❌ AGENT: Ignoring call - status: ${newCall.status}, available: ${isAvailable}`)
+            console.log(`❌ AGENT: Ignoring INSERT - status: ${newCall.status}, available: ${isAvailable}`)
           }
         }
       )
@@ -157,10 +156,11 @@ export default function AgentDashboard() {
         },
         (payload) => {
           const updatedCall = payload.new
-          console.log('📱 AGENT: Call updated:', updatedCall)
+          console.log('📱 AGENT: Call UPDATE detected:', updatedCall)
           
           // Only handle calls assigned to this agent
           if (updatedCall.agent_id === user.id && updatedCall.status === 'ringing') {
+            console.log('🎯 AGENT: Call assigned to me!')
             setCurrentCall(updatedCall)
             setCallState('incoming')
             toast({ 
@@ -168,12 +168,14 @@ export default function AgentDashboard() {
               description: 'A call has been assigned to you' 
             })
           } else if (updatedCall.agent_id === user.id && updatedCall.status === 'connected') {
+            console.log('🎯 AGENT: My call connected!')
             setCallState('connected')
             toast({ 
               title: 'Call Connected!', 
               description: 'You are now connected with the caller' 
             })
           } else if (updatedCall.agent_id === user.id && updatedCall.status === 'ended') {
+            console.log('🎯 AGENT: My call ended!')
             setCallState('ended')
             setIncomingCalls(prev => prev.filter(call => call.id !== updatedCall.id))
             setTimeout(() => {
@@ -181,10 +183,14 @@ export default function AgentDashboard() {
               setCurrentCall(null)
               setCallDuration(0)
             }, 2000)
+          } else {
+            console.log(`❌ AGENT: Ignoring UPDATE - not for me (agent_id: ${updatedCall.agent_id}, my_id: ${user.id})`)
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('🔌 AGENT: Subscription status:', status)
+      })
 
     console.log('✅ AGENT: Call subscriptions set up successfully')
     return () => {
