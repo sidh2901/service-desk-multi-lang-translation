@@ -122,59 +122,58 @@ export default function AgentDashboard() {
   const subscribeToIncomingCalls = () => {
     if (!user) return
 
-    console.log(`Setting up call subscriptions for agent: ${user.name} (${user.id})`)
+    console.log(`🔥 AGENT: Setting up call subscriptions for agent: ${user.name} (${user.id})`)
     
-    // Subscribe to ALL new call sessions (waiting calls)
+    // Subscribe to ALL waiting calls - simplified approach
     const callSubscription = supabase
-      .channel('incoming_calls')
+      .channel('agent_calls_' + user.id)
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           table: 'call_sessions',
-          filter: 'status=eq.waiting'
+          // Remove filter to catch ALL new calls
         }, 
         (payload) => {
           const newCall = payload.new
-          console.log('🔔 New waiting call detected:', newCall)
+          console.log('🔔 AGENT: New call detected:', newCall)
           
-          // Show to available agents only
-          if (isAvailable) {
-            console.log(`📞 Adding call to incoming queue for agent ${user.name}`)
+          // Only show waiting calls to available agents
+          if (newCall.status === 'waiting' && isAvailable) {
+            console.log(`📞 AGENT: Adding call to incoming queue for agent ${user.name}`)
             setIncomingCalls(prev => [...prev, newCall])
             toast({ 
               title: 'Incoming Call!', 
               description: `Caller needs help in ${newCall.caller_language}`,
             })
           } else {
-            console.log(`❌ Agent ${user.name} is not available, ignoring call`)
+            console.log(`❌ AGENT: Ignoring call - status: ${newCall.status}, available: ${isAvailable}`)
           }
         }
       )
-      // Subscribe to calls assigned to this specific agent
       .on('postgres_changes',
         {
           event: 'UPDATE',
           table: 'call_sessions',
-          filter: `agent_id=eq.${user.id}`
         },
         (payload) => {
           const updatedCall = payload.new
-          console.log('📱 Call assigned to me updated:', updatedCall)
+          console.log('📱 AGENT: Call updated:', updatedCall)
           
-          if (updatedCall.status === 'ringing') {
+          // Only handle calls assigned to this agent
+          if (updatedCall.agent_id === user.id && updatedCall.status === 'ringing') {
             setCurrentCall(updatedCall)
             setCallState('incoming')
             toast({ 
               title: 'Call Assigned!', 
               description: 'A call has been assigned to you' 
             })
-          } else if (updatedCall.status === 'connected') {
+          } else if (updatedCall.agent_id === user.id && updatedCall.status === 'connected') {
             setCallState('connected')
             toast({ 
               title: 'Call Connected!', 
               description: 'You are now connected with the caller' 
             })
-          } else if (updatedCall.status === 'ended') {
+          } else if (updatedCall.agent_id === user.id && updatedCall.status === 'ended') {
             setCallState('ended')
             setIncomingCalls(prev => prev.filter(call => call.id !== updatedCall.id))
             setTimeout(() => {
@@ -187,9 +186,9 @@ export default function AgentDashboard() {
       )
       .subscribe()
 
-    console.log('✅ Call subscriptions set up successfully')
+    console.log('✅ AGENT: Call subscriptions set up successfully')
     return () => {
-      console.log('🔌 Unsubscribing from call updates')
+      console.log('🔌 AGENT: Unsubscribing from call updates')
       callSubscription.unsubscribe()
     }
   }
