@@ -21,10 +21,20 @@ const LANGUAGES = [
 
 type CallState = 'idle' | 'calling' | 'connected' | 'ended'
 
+interface AgentWithStatus {
+  id: string
+  name: string
+  email: string
+  language: string
+  role: string
+  created_at: string
+  is_available: boolean
+  last_seen: string
+}
 export default function CallerDashboard() {
   const { toast } = useToast()
   const [user, setUser] = useState<any>(null)
-  const [availableAgents, setAvailableAgents] = useState<any[]>([])
+  const [availableAgents, setAvailableAgents] = useState<AgentWithStatus[]>([])
   const [selectedAgent, setSelectedAgent] = useState<string>('')
   const [callState, setCallState] = useState<CallState>('idle')
   const [callDuration, setCallDuration] = useState(0)
@@ -34,7 +44,10 @@ export default function CallerDashboard() {
 
   useEffect(() => {
     fetchUserProfile()
-    fetchAvailableAgents()
+    
+    // Start polling for available agents
+    const pollInterval = setInterval(fetchAvailableAgents, 3000) // Poll every 3 seconds
+    fetchAvailableAgents() // Initial fetch
     
     // Simulate call timer
     let interval: NodeJS.Timeout
@@ -43,7 +56,11 @@ export default function CallerDashboard() {
         setCallDuration(prev => prev + 1)
       }, 1000)
     }
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearInterval(interval)
+      clearInterval(pollInterval)
+    }
   }, [callState])
 
   const fetchUserProfile = async () => {
@@ -74,7 +91,16 @@ export default function CallerDashboard() {
         .eq('role', 'agent')
 
       if (error) throw error
-      setAvailableAgents(agents || [])
+      
+      // For now, simulate availability status
+      // In a real app, you'd track this in the database with last_seen timestamps
+      const agentsWithStatus: AgentWithStatus[] = (agents || []).map(agent => ({
+        ...agent,
+        is_available: Math.random() > 0.3, // Simulate 70% availability
+        last_seen: new Date().toISOString()
+      }))
+      
+      setAvailableAgents(agentsWithStatus)
     } catch (error) {
       console.error('Error fetching agents:', error)
     }
@@ -227,19 +253,28 @@ export default function CallerDashboard() {
                         <SelectValue placeholder="Choose an agent to call" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableAgents.map(agent => (
+                        {availableAgents.filter(agent => agent.is_available).map(agent => (
                           <SelectItem key={agent.id} value={agent.id}>
                             <div className="flex items-center gap-2">
                               <User className="w-4 h-4" />
                               <span>{agent.name}</span>
+                              <div className="w-2 h-2 bg-green-500 rounded-full" />
                               <Badge variant="secondary" className="text-xs">
                                 {getLangInfo(agent.language)?.flag} {getLangInfo(agent.language)?.label}
                               </Badge>
                             </div>
                           </SelectItem>
                         ))}
+                        {availableAgents.filter(agent => agent.is_available).length === 0 && (
+                          <SelectItem value="" disabled>
+                            No agents available
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {availableAgents.filter(agent => agent.is_available).length} of {availableAgents.length} agents available
+                    </p>
                   </div>
 
                   <div className="space-y-2">

@@ -34,7 +34,12 @@ export default function AgentDashboard() {
 
   useEffect(() => {
     fetchUserProfile()
-    subscribeToIncomingCalls()
+    
+    // Update availability status in database
+    updateAvailabilityStatus()
+    
+    // Set up periodic availability updates
+    const availabilityInterval = setInterval(updateAvailabilityStatus, 30000) // Update every 30 seconds
     
     // Simulate call timer
     let interval: NodeJS.Timeout
@@ -43,9 +48,25 @@ export default function AgentDashboard() {
         setCallDuration(prev => prev + 1)
       }, 1000)
     }
-    return () => clearInterval(interval)
+    
+    return () => {
+      clearInterval(interval)
+      clearInterval(availabilityInterval)
+    }
   }, [callState])
 
+  useEffect(() => {
+    if (user) {
+      subscribeToIncomingCalls()
+    }
+  }, [user])
+
+  useEffect(() => {
+    // Update availability when status changes
+    if (user) {
+      updateAvailabilityStatus()
+    }
+  }, [isAvailable, user])
   const fetchUserProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -66,6 +87,26 @@ export default function AgentDashboard() {
     }
   }
 
+  const updateAvailabilityStatus = async () => {
+    if (!user) return
+    
+    try {
+      // In a real implementation, you'd update a last_seen timestamp and availability status
+      // For now, we'll just log the status
+      console.log(`Agent ${user.name} availability: ${isAvailable}`)
+      
+      // You could add a field to track this in the database:
+      // await supabase
+      //   .from('user_profiles')
+      //   .update({ 
+      //     is_available: isAvailable,
+      //     last_seen: new Date().toISOString()
+      //   })
+      //   .eq('id', user.id)
+    } catch (error) {
+      console.error('Error updating availability:', error)
+    }
+  }
   const subscribeToIncomingCalls = () => {
     if (!user) return
 
