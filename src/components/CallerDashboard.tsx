@@ -179,13 +179,14 @@ export default function CallerDashboard() {
 
     try {
       setCallState('calling')
+      console.log(`📞 Starting call from ${user.name} in ${language}`)
       
       // Create call session
       const { data: session, error } = await supabase
         .from('call_sessions')
         .insert({
           caller_id: user.id,
-          agent_id: null, // Will be assigned when agent answers
+          agent_id: null,
           status: 'waiting',
           caller_language: language,
           agent_language: null
@@ -195,6 +196,7 @@ export default function CallerDashboard() {
 
       if (error) throw error
 
+      console.log('📋 Call session created:', session)
       setCurrentCall(session)
       
       // Subscribe to call status updates
@@ -208,7 +210,7 @@ export default function CallerDashboard() {
           },
           (payload) => {
             const updatedCall = payload.new
-            console.log('Call status updated:', updatedCall.status)
+            console.log('📱 My call status updated:', updatedCall.status)
             
             if (updatedCall.status === 'ringing') {
               setCallState('calling')
@@ -231,10 +233,13 @@ export default function CallerDashboard() {
       // Store subscription for cleanup
       setCurrentCall(prev => ({ ...prev, subscription: callSubscription }))
       
-
-      toast({ title: 'Calling...', description: 'Looking for available agents...' })
+      toast({ 
+        title: 'Call Created!', 
+        description: 'Waiting for an agent to answer...' 
+      })
 
     } catch (error: any) {
+      console.error('❌ Call failed:', error)
       toast({ 
         title: 'Call failed', 
         description: error.message,
