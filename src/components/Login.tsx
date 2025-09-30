@@ -21,6 +21,7 @@ const LANGUAGES = [
 export default function Login() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('login')
+  const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
   const { toast } = useToast()
 
   const [loginForm, setLoginForm] = useState({
@@ -157,6 +158,28 @@ export default function Login() {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
+                        }}
+                      >
+                        <Headphones className="w-4 h-4 mr-2" />
+                        Agent
+                      </Button>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">Click to auto-fill demo credentials</p>
+                  </div>
                 </form>
               </TabsContent>
 
