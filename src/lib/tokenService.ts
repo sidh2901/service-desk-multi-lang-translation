@@ -116,4 +116,3 @@ export async function createMockRealtimeConnection({
     throw error;
   }
 }
-</parameter>

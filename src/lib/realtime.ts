@@ -74,4 +74,3 @@ function waitForIceGathering(pc: RTCPeerConnection) {
     pc.addEventListener("icegatheringstatechange", cb);
   });
 }
-</parameter>
