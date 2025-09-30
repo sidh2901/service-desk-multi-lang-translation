@@ -26,6 +26,7 @@ export default function Login() {
   const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
   const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
   const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
+  const [selectedRole, setSelectedRole] = useState<'caller' | 'agent'>('caller')
   const { toast } = useToast()
 
   const [loginForm, setLoginForm] = useState({
@@ -176,17 +177,81 @@ export default function Login() {
                           setSelectedRole('caller')
                         }}
                       >
-                        <Phone className="w-4 h-4 mr-2" />
-                        Caller
-                      </Button>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         className="w-full justify-start"
                         onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
+                        onClick={() => {
                           setLoginForm({ email: 'agent@demo.com', password: 'password' })
                           setSelectedRole('agent')
+                        }}
+                      >
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Quick Login Options:</h4>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setLoginForm({ email: 'caller@demo.com', password: 'password' })
+                          setSelectedRole('caller')
+                        }}
+                      >
                         }}
                       >
                         <Headphones className="w-4 h-4 mr-2" />
