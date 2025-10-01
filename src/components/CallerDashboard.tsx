@@ -236,6 +236,8 @@ export default function CallerDashboard() {
               setCallState('calling')
               toast({ title: 'Agent found!', description: 'Connecting your call...' })
             } else if (updatedCall.status === 'connected') {
+              console.log('🔗 CALLER: Call connected, starting translation...')
+              setCurrentCall(updatedCall)
               startAITranslation(updatedCall)
             } else if (updatedCall.status === 'ended') {
               setCallState('ended')
@@ -270,26 +272,27 @@ export default function CallerDashboard() {
 
   const startAITranslation = async (callSession: any) => {
     try {
-      console.log('🤖 CALLER: Starting AI translation system...')
+      console.log('🤖 CALLER: Starting AI translation system for caller...')
       setIsTranslating(true)
       
       const handle = await startRealtime({
-        sourceLanguage: callSession.agent_language || 'spanish', // What the agent speaks
-        targetLanguage: language, // Use caller's selected language  
+        sourceLanguage: callSession.agent_language || 'spanish', // Agent speaks this
+        targetLanguage: language, // Caller wants to hear this
         voice: 'coral',
         onPartial: (text) => {
+          console.log('🤖 CALLER: Partial translation:', text)
           setLastTranslation(text)
         },
         onFinal: (text) => {
-          console.log('🗣️ AI Translation:', text)
+          console.log('🗣️ CALLER: Final translation:', text)
           setLastTranslation(text)
         },
         onSourceFinal: (text) => {
-          console.log('👤 Agent said:', text)
+          console.log('👤 CALLER: Agent said:', text)
           setAgentSpeech(text)
         },
         onError: (error) => {
-          console.error('❌ AI Translation error:', error)
+          console.error('❌ CALLER: AI Translation error:', error)
           toast({
             title: 'Translation Error',
             description: 'AI translation encountered an issue',
@@ -313,7 +316,7 @@ export default function CallerDashboard() {
       
       toast({ 
         title: 'Call connected!', 
-        description: `AI translating agent's ${getLangInfo(callSession.agent_language || 'spanish')?.label} to your ${getLangInfo(language)?.label}` 
+        description: `AI translating agent's ${getLangInfo(callSession.agent_language || 'spanish')?.label} to your ${getLangInfo(language)?.label}. You can now speak and hear translations!` 
       })
       
     } catch (error) {
