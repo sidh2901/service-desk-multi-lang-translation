@@ -274,6 +274,7 @@ export default function CallerDashboard() {
       setIsTranslating(true)
       
       const handle = await startRealtime({
+        sourceLanguage: callSession.agent_language || 'spanish', // What the agent speaks
         targetLanguage: language, // Use caller's selected language  
         voice: 'coral',
         onPartial: (text) => {

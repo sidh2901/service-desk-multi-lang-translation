@@ -10,6 +10,7 @@ import { getEphemeralToken } from './tokenService';
 
 export async function startRealtime({
   targetLanguage,
+  sourceLanguage,
   voice,
   onPartial,
   onFinal,
@@ -17,6 +18,7 @@ export async function startRealtime({
   onError,
 }: {
   targetLanguage: string;
+  sourceLanguage: string;
   voice: string;
   onPartial?: (t: string) => void;
   onFinal?: (t: string) => void;
@@ -89,21 +91,21 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
-          instructions: `You are a TRANSLATION-ONLY system. Your ONLY function is to translate spoken words.
+          instructions: `You are a TRANSLATION-ONLY system. Your ONLY function is to translate spoken words from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(targetLanguage)}.
 
 STRICT RULES:
-1. ONLY translate speech to ${getLanguageFullName(targetLanguage)}
+1. ONLY translate speech from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(targetLanguage)}
 2. NEVER answer questions or provide responses
 3. NEVER add explanations, greetings, or extra words
 4. NEVER say things like "How can I help" or give advice
-5. If you hear "${getLanguageFullName(targetLanguage)}", translate it back to the speaker's original language
-6. Keep translations direct and accurate
+5. Keep translations direct and accurate
+6. Translate EVERY word you hear
 7. You are NOT an assistant - you are ONLY a translator
 
 EXAMPLES:
-Input: "Hello" → Output: "Hola" (if target is Spanish)
-Input: "What time is it?" → Output: "¿Qué hora es?" (if target is Spanish)
-Input: "I have a problem" → Output: "Tengo un problema" (if target is Spanish)
+Input (${getLanguageFullName(sourceLanguage)}): "Hello" → Output (${getLanguageFullName(targetLanguage)}): "Hola"
+Input (${getLanguageFullName(sourceLanguage)}): "What time is it?" → Output (${getLanguageFullName(targetLanguage)}): "¿Qué hora es?"
+Input (${getLanguageFullName(sourceLanguage)}): "I have a problem" → Output (${getLanguageFullName(targetLanguage)}): "Tengo un problema"
 
 DO NOT respond to the content - ONLY translate the words.`,
           voice: voice,
@@ -234,14 +236,14 @@ DO NOT respond to the content - ONLY translate the words.`,
         const updateConfig = {
           type: 'session.update',
           session: {
-            instructions: `TRANSLATION-ONLY MODE. Translate all speech to ${getLanguageFullName(lang)}.
+            instructions: `TRANSLATION-ONLY MODE. Translate all speech from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(lang)}.
 
 RULES:
-1. ONLY translate - NEVER respond to content
+1. ONLY translate from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(lang)} - NEVER respond to content
 2. NEVER answer questions or give advice  
 3. NEVER add extra words beyond the translation
 4. Direct word-for-word translation only
-5. If input is already in ${getLanguageFullName(lang)}, translate to the other person's language
+5. Translate EVERY word you hear
 
 You are NOT an assistant. You are ONLY a translator.`,
             temperature: 0.0,
