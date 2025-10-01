@@ -54,11 +54,27 @@ export async function startRealtime({
     // Handle incoming audio from OpenAI
     pc.ontrack = (event) => {
       console.log('🎵 Received audio track from OpenAI')
-      const audioElement = new Audio()
+      
+      // Create audio element and play immediately
+      const audioElement = document.createElement('audio')
       audioElement.srcObject = event.streams[0]
       audioElement.autoplay = true
       audioElement.volume = 1.0
-      console.log('🔊 Playing translated audio')
+      audioElement.muted = false
+      
+      // Add to DOM temporarily to ensure playback
+      document.body.appendChild(audioElement)
+      
+      audioElement.play().then(() => {
+        console.log('🔊 Playing translated audio successfully')
+      }).catch(error => {
+        console.error('❌ Audio playback failed:', error)
+      })
+      
+      // Clean up after audio ends
+      audioElement.onended = () => {
+        document.body.removeChild(audioElement)
+      }
     }
 
     // Create data channel for sending instructions
@@ -73,23 +89,23 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
-          instructions: `You are a REAL-TIME TRANSLATOR. Your job is to translate speech between languages.
+          instructions: `You are a TRANSLATION-ONLY system. Your ONLY function is to translate spoken words.
 
-CRITICAL TRANSLATION RULES:
-1. When you hear speech, translate it DIRECTLY to ${getLanguageFullName(targetLanguage)}
-2. DO NOT respond to questions - ONLY translate them
-3. DO NOT add greetings, explanations, or commentary
-4. DO NOT say "How can I help you?" or provide customer service
-5. Keep translations short, accurate and natural
-6. If someone says "Hello" translate it as "Hola" (for Spanish) - nothing more
-7. You are NOT a customer service agent - you are ONLY a translator
+STRICT RULES:
+1. ONLY translate speech to ${getLanguageFullName(targetLanguage)}
+2. NEVER answer questions or provide responses
+3. NEVER add explanations, greetings, or extra words
+4. NEVER say things like "How can I help" or give advice
+5. If you hear "${getLanguageFullName(targetLanguage)}", translate it back to the speaker's original language
+6. Keep translations direct and accurate
+7. You are NOT an assistant - you are ONLY a translator
 
-Examples:
-- Hear "Hello" → Say "Hola" (if translating to Spanish)
-- Hear "How are you?" → Say "¿Cómo estás?" (if translating to Spanish)  
-- Hear "I need help" → Say "Necesito ayuda" (if translating to Spanish)
+EXAMPLES:
+Input: "Hello" → Output: "Hola" (if target is Spanish)
+Input: "What time is it?" → Output: "¿Qué hora es?" (if target is Spanish)
+Input: "I have a problem" → Output: "Tengo un problema" (if target is Spanish)
 
-NEVER add extra words or responses. ONLY translate what you hear.`,
+DO NOT respond to the content - ONLY translate the words.`,
           voice: voice,
           input_audio_format: 'pcm16',
           output_audio_format: 'pcm16',
@@ -102,8 +118,8 @@ NEVER add extra words or responses. ONLY translate what you hear.`,
             prefix_padding_ms: 300,
             silence_duration_ms: 800
           },
-          temperature: 0.1,
-          max_response_output_tokens: 50
+          temperature: 0.0,
+          max_response_output_tokens: 30
         }
       }
       
@@ -218,20 +234,18 @@ NEVER add extra words or responses. ONLY translate what you hear.`,
         const updateConfig = {
           type: 'session.update',
           session: {
-            instructions: `You are a REAL-TIME TRANSLATOR ONLY. Your ONLY job is to translate speech.
-            
-            TRANSLATION RULES:
-            1. ONLY translate what you hear - DO NOT add any responses, answers, or commentary
-            2. When you hear speech in any language, translate it DIRECTLY to ${getLanguageFullName(lang)}
-            3. DO NOT answer questions - just translate them
-            4. DO NOT provide customer service - just translate
-            5. Keep translations accurate and natural
-            6. If you hear "${getLanguageFullName(lang)}", translate it to the other person's language
-            7. NEVER say things like "How can I help you?" or provide answers
-            
-            Example: If you hear "Hello, how are you?" in English, just say "Hola, ¿cómo estás?" in Spanish. DO NOT add "How can I help you today?"
-            
-            You are a TRANSLATOR, not a customer service agent.`
+            instructions: `TRANSLATION-ONLY MODE. Translate all speech to ${getLanguageFullName(lang)}.
+
+RULES:
+1. ONLY translate - NEVER respond to content
+2. NEVER answer questions or give advice  
+3. NEVER add extra words beyond the translation
+4. Direct word-for-word translation only
+5. If input is already in ${getLanguageFullName(lang)}, translate to the other person's language
+
+You are NOT an assistant. You are ONLY a translator.`,
+            temperature: 0.0,
+            max_response_output_tokens: 30
           }
         }
         dc.send(JSON.stringify(updateConfig))

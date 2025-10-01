@@ -46,6 +46,7 @@ export default function CallerDashboard() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [lastTranslation, setLastTranslation] = useState('')
   const [agentSpeech, setAgentSpeech] = useState('')
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
 
   useEffect(() => {
     fetchUserProfile()
@@ -67,6 +68,22 @@ export default function CallerDashboard() {
       clearInterval(pollInterval)
     }
   }, [callState])
+
+  // Handle mute functionality
+  useEffect(() => {
+    if (audioStream) {
+      audioStream.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted
+      })
+    }
+  }, [isMuted, audioStream])
+
+  // Handle language change during call
+  useEffect(() => {
+    if (realtimeHandle && callState === 'connected') {
+      realtimeHandle.setTargetLanguage(language)
+    }
+  }, [language, realtimeHandle, callState])
 
   const fetchUserProfile = async () => {
     try {
@@ -283,6 +300,16 @@ export default function CallerDashboard() {
       setRealtimeHandle(handle)
       setCallState('connected')
       
+      // Store audio stream for mute control
+      if (handle.pc) {
+        const senders = handle.pc.getSenders()
+        const audioSender = senders.find(sender => sender.track?.kind === 'audio')
+        if (audioSender?.track) {
+          const stream = new MediaStream([audioSender.track])
+          setAudioStream(stream)
+        }
+      }
+      
       toast({ 
         title: 'Call connected!', 
         description: `AI translating agent's ${getLangInfo(callSession.agent_language || 'spanish')?.label} to your ${getLangInfo(language)?.label}` 
@@ -320,6 +347,7 @@ export default function CallerDashboard() {
       setIsTranslating(false)
       setLastTranslation('')
       setAgentSpeech('')
+      setAudioStream(null)
       
       // Cleanup subscription
       if (currentCall?.subscription) {
@@ -461,6 +489,9 @@ export default function CallerDashboard() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {callState === 'connected' && (
+                      <p className="text-xs text-blue-600">Language updated for current call</p>
+                    )}
                   </div>
                 </div>
               )}

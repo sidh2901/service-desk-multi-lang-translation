@@ -36,6 +36,7 @@ export default function AgentDashboard() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [lastTranslation, setLastTranslation] = useState('')
   const [callerSpeech, setCallerSpeech] = useState('')
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
 
   useEffect(() => {
     fetchUserProfile()
@@ -78,6 +79,22 @@ export default function AgentDashboard() {
     }
   }, [isAvailable, user])
   
+  // Handle mute functionality
+  useEffect(() => {
+    if (audioStream) {
+      audioStream.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted
+      })
+    }
+  }, [isMuted, audioStream])
+
+  // Handle language change during call
+  useEffect(() => {
+    if (realtimeHandle && callState === 'connected') {
+      realtimeHandle.setTargetLanguage(language)
+    }
+  }, [language, realtimeHandle, callState])
+
   const fetchUserProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -334,6 +351,16 @@ export default function AgentDashboard() {
       setRealtimeHandle(handle)
       setCallState('connected')
       
+      // Store audio stream for mute control
+      if (handle.pc) {
+        const senders = handle.pc.getSenders()
+        const audioSender = senders.find(sender => sender.track?.kind === 'audio')
+        if (audioSender?.track) {
+          const stream = new MediaStream([audioSender.track])
+          setAudioStream(stream)
+        }
+      }
+      
       toast({ 
         title: 'Call connected!', 
         description: `AI translating caller's ${getLangInfo(callSession.caller_language)?.label} to your ${getLangInfo(language)?.label}` 
@@ -371,6 +398,7 @@ export default function AgentDashboard() {
       setIsTranslating(false)
       setLastTranslation('')
       setCallerSpeech('')
+      setAudioStream(null)
       
       if (currentCall) {
         await supabase
@@ -585,7 +613,6 @@ export default function AgentDashboard() {
                 <Select 
                   value={language} 
                   onValueChange={setLanguage}
-                  disabled={callState !== 'idle'}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -598,6 +625,9 @@ export default function AgentDashboard() {
                     ))}
                   </SelectContent>
                 </Select>
+                {callState === 'connected' && (
+                  <p className="text-xs text-blue-600">Language updated for current call</p>
+                )}
               </div>
 
               {/* Call Info */}
