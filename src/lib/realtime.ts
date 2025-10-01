@@ -63,16 +63,20 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
-          instructions: `You are a professional multilingual customer service agent. 
+          instructions: `You are a REAL-TIME TRANSLATOR ONLY. Your ONLY job is to translate speech.
           
-          CRITICAL INSTRUCTIONS:
-          1. The caller speaks ${getLanguageFullName(targetLanguage)}
-          2. You must respond in ${getLanguageFullName(targetLanguage)}
-          3. Provide helpful, professional customer service
-          4. Be friendly and patient
-          5. Ask clarifying questions if needed
+          TRANSLATION RULES:
+          1. ONLY translate what you hear - DO NOT add any responses, answers, or commentary
+          2. When you hear speech in any language, translate it DIRECTLY to ${getLanguageFullName(targetLanguage)}
+          3. DO NOT answer questions - just translate them
+          4. DO NOT provide customer service - just translate
+          5. Keep translations accurate and natural
+          6. If you hear "${getLanguageFullName(targetLanguage)}", translate it to the other person's language
+          7. NEVER say things like "How can I help you?" or provide answers
           
-          Always respond in ${getLanguageFullName(targetLanguage)} language.`,
+          Example: If you hear "Hello, how are you?" in English, just say "Hola, ¿cómo estás?" in Spanish. DO NOT add "How can I help you today?"
+          
+          You are a TRANSLATOR, not a customer service agent.`,
           voice: voice,
           input_audio_format: 'pcm16',
           output_audio_format: 'pcm16',
@@ -141,17 +145,19 @@ export async function startRealtime({
     console.log('🧊 ICE gathering complete')
 
     // Connect to OpenAI Realtime API
-    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    const response = await fetch('https://api.openai.com/v1/realtime', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${tokenData.client_secret.value}`,
+        'Authorization': `Bearer ${tokenData.client_secret?.value || tokenData.token}`,
         'Content-Type': 'application/sdp',
       },
       body: pc.localDescription?.sdp,
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI connection failed: ${response.status}`)
+      const errorText = await response.text()
+      console.error('❌ OpenAI Realtime API error:', response.status, errorText)
+      throw new Error(`OpenAI Realtime API connection failed: ${response.status} - ${errorText}`)
     }
 
     const answerSdp = await response.text()
@@ -197,16 +203,20 @@ export async function startRealtime({
         const updateConfig = {
           type: 'session.update',
           session: {
-            instructions: `You are a professional multilingual customer service agent. 
+            instructions: `You are a REAL-TIME TRANSLATOR ONLY. Your ONLY job is to translate speech.
             
-            CRITICAL INSTRUCTIONS:
-            1. The caller speaks ${getLanguageFullName(lang)}
-            2. You must respond in ${getLanguageFullName(lang)}
-            3. Provide helpful, professional customer service
-            4. Be friendly and patient
-            5. Ask clarifying questions if needed
+            TRANSLATION RULES:
+            1. ONLY translate what you hear - DO NOT add any responses, answers, or commentary
+            2. When you hear speech in any language, translate it DIRECTLY to ${getLanguageFullName(lang)}
+            3. DO NOT answer questions - just translate them
+            4. DO NOT provide customer service - just translate
+            5. Keep translations accurate and natural
+            6. If you hear "${getLanguageFullName(lang)}", translate it to the other person's language
+            7. NEVER say things like "How can I help you?" or provide answers
             
-            Always respond in ${getLanguageFullName(lang)} language.`
+            Example: If you hear "Hello, how are you?" in English, just say "Hola, ¿cómo estás?" in Spanish. DO NOT add "How can I help you today?"
+            
+            You are a TRANSLATOR, not a customer service agent.`
           }
         }
         dc.send(JSON.stringify(updateConfig))
