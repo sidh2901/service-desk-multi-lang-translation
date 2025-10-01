@@ -257,7 +257,7 @@ export default function CallerDashboard() {
       setIsTranslating(true)
       
       const handle = await startRealtime({
-        targetLanguage: getLanguageName(callSession.agent_language || 'spanish'),
+        targetLanguage: language, // Use caller's selected language  
         voice: 'coral',
         onPartial: (text) => {
           setLastTranslation(text)
@@ -285,7 +285,7 @@ export default function CallerDashboard() {
       
       toast({ 
         title: 'Call connected!', 
-        description: 'AI translation is now active' 
+        description: `AI translating agent's ${getLangInfo(callSession.agent_language || 'spanish')?.label} to your ${getLangInfo(language)?.label}` 
       })
       
     } catch (error) {

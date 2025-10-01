@@ -308,7 +308,7 @@ export default function AgentDashboard() {
       setIsTranslating(true)
       
       const handle = await startRealtime({
-        targetLanguage: getLanguageName(callSession.caller_language),
+        targetLanguage: language, // Use agent's selected language
         voice: 'coral',
         onPartial: (text) => {
           setLastTranslation(text)
@@ -336,7 +336,7 @@ export default function AgentDashboard() {
       
       toast({ 
         title: 'Call connected!', 
-        description: 'AI translation is now active' 
+        description: `AI translating caller's ${getLangInfo(callSession.caller_language)?.label} to your ${getLangInfo(language)?.label}` 
       })
       
     } catch (error) {
