@@ -92,10 +92,8 @@ export async function startRealtime({
         type: 'session.update',
         session: {
         }
-      }
-    }
-  }
-}
+          instructions: `You are a TRANSLATION MACHINE. You translate from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(targetLanguage)}.
+
 RULES:
 - Input: ${getLanguageFullName(sourceLanguage)} speech
 - Output: ONLY the ${getLanguageFullName(targetLanguage)} translation
