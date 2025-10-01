@@ -13,24 +13,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        configure: (proxy, options) => {
-          // Fallback to mock response if proxy fails
-          proxy.on('error', (err, req, res) => {
-            console.log('Proxy error, serving mock token response')
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({
-              client_secret: {
-                value: 'mock-token-for-development'
-              }
-            }))
-          })
-        }
-      }
-    }
   },
   build: {
     outDir: 'dist',
