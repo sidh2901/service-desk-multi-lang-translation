@@ -91,6 +91,11 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
+        }
+      }
+    }
+  }
+}
 RULES:
 - Input: ${getLanguageFullName(sourceLanguage)} speech
 - Output: ONLY the ${getLanguageFullName(targetLanguage)} translation
