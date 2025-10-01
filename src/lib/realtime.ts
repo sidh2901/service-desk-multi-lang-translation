@@ -91,7 +91,6 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
-        }
           instructions: `You are a TRANSLATION MACHINE. You translate from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(targetLanguage)}.
 
 RULES:
