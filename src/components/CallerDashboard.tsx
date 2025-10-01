@@ -272,23 +272,23 @@ export default function CallerDashboard() {
 
   const startAITranslation = async (callSession: any) => {
     try {
-      console.log('🤖 CALLER: Starting AI translation system for caller...')
+      console.log('🤖 CALLER: Starting AI translation - I speak', language, 'and want to hear agent in', language)
       setIsTranslating(true)
       
       const handle = await startRealtime({
-        sourceLanguage: callSession.agent_language || 'spanish', // Agent speaks this
-        targetLanguage: language, // Caller wants to hear this
+        sourceLanguage: language, // What I (caller) speak
+        targetLanguage: callSession.agent_language || 'spanish', // What I want to send to agent
         voice: 'coral',
         onPartial: (text) => {
-          console.log('🤖 CALLER: Partial translation:', text)
+          console.log('🤖 CALLER: Translating my', language, 'to agent\'s', callSession.agent_language)
           setLastTranslation(text)
         },
         onFinal: (text) => {
-          console.log('🗣️ CALLER: Final translation:', text)
+          console.log('🗣️ CALLER: Sent to agent:', text)
           setLastTranslation(text)
         },
-        onSourceFinal: (text) => {
-          console.log('👤 CALLER: Agent said:', text)
+        onIncomingTranslation: (text) => {
+          console.log('👤 CALLER: Received from agent:', text)
           setAgentSpeech(text)
         },
         onError: (error) => {
@@ -316,7 +316,7 @@ export default function CallerDashboard() {
       
       toast({ 
         title: 'Call connected!', 
-        description: `AI translating agent's ${getLangInfo(callSession.agent_language || 'spanish')?.label} to your ${getLangInfo(language)?.label}. You can now speak and hear translations!` 
+        description: `You speak ${getLangInfo(language)?.label}, agent speaks ${getLangInfo(callSession.agent_language || 'spanish')?.label}` 
       })
       
     } catch (error) {

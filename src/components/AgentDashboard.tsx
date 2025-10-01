@@ -321,22 +321,23 @@ export default function AgentDashboard() {
 
   const startAITranslation = async (callSession: any) => {
     try {
-      console.log('🤖 Starting AI translation system...')
+      console.log('🤖 AGENT: Starting AI translation - I speak', language, 'and want to hear caller in', language)
       setIsTranslating(true)
       
       const handle = await startRealtime({
-        sourceLanguage: callSession.caller_language, // What the caller speaks
-        targetLanguage: language, // Use agent's selected language
+        sourceLanguage: language, // What I (agent) speak
+        targetLanguage: callSession.caller_language, // What I want to send to caller
         voice: 'coral',
         onPartial: (text) => {
+          console.log('🤖 AGENT: Translating my', language, 'to caller\'s', callSession.caller_language)
           setLastTranslation(text)
         },
         onFinal: (text) => {
-          console.log('🗣️ AI Translation:', text)
+          console.log('🗣️ AGENT: Sent to caller:', text)
           setLastTranslation(text)
         },
-        onSourceFinal: (text) => {
-          console.log('👤 Caller said:', text)
+        onIncomingTranslation: (text) => {
+          console.log('👤 AGENT: Received from caller:', text)
           setCallerSpeech(text)
         },
         onError: (error) => {
@@ -364,7 +365,7 @@ export default function AgentDashboard() {
       
       toast({ 
         title: 'Call connected!', 
-        description: `AI translating caller's ${getLangInfo(callSession.caller_language)?.label} to your ${getLangInfo(language)?.label}` 
+        description: `You speak ${getLangInfo(language)?.label}, caller speaks ${getLangInfo(callSession.caller_language)?.label}` 
       })
       
     } catch (error) {

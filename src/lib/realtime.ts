@@ -14,7 +14,7 @@ export async function startRealtime({
   voice,
   onPartial,
   onFinal,
-  onSourceFinal,
+  onIncomingTranslation,
   onError,
 }: {
   targetLanguage: string;
@@ -22,7 +22,7 @@ export async function startRealtime({
   voice: string;
   onPartial?: (t: string) => void;
   onFinal?: (t: string) => void;
-  onSourceFinal?: (t: string) => void;
+  onIncomingTranslation?: (t: string) => void;
   onError?: (e: any) => void;
 }): Promise<RealtimeHandle> {
   console.log('🤖 Starting REAL OpenAI Realtime API...')
@@ -91,24 +91,15 @@ export async function startRealtime({
       const sessionConfig = {
         type: 'session.update',
         session: {
-          instructions: `You are a TRANSLATION MACHINE. You ONLY translate words from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(targetLanguage)}.
-
-STRICT RULES:
-- NEVER respond to questions
-- NEVER give advice or help
-- NEVER say "hello", "how can I help", or any greetings
-- NEVER engage in conversation
-- ONLY repeat what you hear in ${getLanguageFullName(targetLanguage)}
-- If someone says "Hello" in ${getLanguageFullName(sourceLanguage)}, you say "Hello" in ${getLanguageFullName(targetLanguage)}
+RULES:
+- Input: ${getLanguageFullName(sourceLanguage)} speech
+- Output: ONLY the ${getLanguageFullName(targetLanguage)} translation
+- Do NOT add extra words
+- Do NOT respond to questions
+- Do NOT give advice
+- JUST translate the words you hear
 - If someone asks "How are you?" in ${getLanguageFullName(sourceLanguage)}, you say "How are you?" in ${getLanguageFullName(targetLanguage)}
-- You are NOT an assistant - you are a TRANSLATION MACHINE
-
-Example:
-Input: "¿Cómo estás?" → Output: "How are you?"
-Input: "I need help" → Output: "Necesito ayuda"
-
-JUST TRANSLATE - DO NOT ANSWER OR HELP!`,
-          voice: voice,
+Example: If you hear "Hello" in ${getLanguageFullName(sourceLanguage)}, say "Hello" in ${getLanguageFullName(targetLanguage)}.`,
           input_audio_format: 'pcm16',
           output_audio_format: 'pcm16',
           input_audio_transcription: {
@@ -145,7 +136,7 @@ JUST TRANSLATE - DO NOT ANSWER OR HELP!`,
             
           case 'input_audio_buffer.transcription.completed':
             console.log('👤 User said:', message.transcript)
-            if (onSourceFinal) onSourceFinal(message.transcript)
+            if (onIncomingTranslation) onIncomingTranslation(message.transcript)
             break
             
           case 'response.audio_transcript.delta':
@@ -236,19 +227,17 @@ JUST TRANSLATE - DO NOT ANSWER OR HELP!`,
         const updateConfig = {
           type: 'session.update',
           session: {
-            instructions: `You are a TRANSLATION MACHINE. You ONLY translate words from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(lang)}.
+            instructions: `You are a TRANSLATION MACHINE. You translate from ${getLanguageFullName(sourceLanguage)} to ${getLanguageFullName(lang)}.
 
-STRICT RULES:
-- NEVER respond to questions
-- NEVER give advice or help
-- NEVER say "hello", "how can I help", or any greetings
-- NEVER engage in conversation
-- ONLY repeat what you hear in ${getLanguageFullName(lang)}
-- If someone says "Hello" in ${getLanguageFullName(sourceLanguage)}, you say "Hello" in ${getLanguageFullName(lang)}
-- If someone asks "How are you?" in ${getLanguageFullName(sourceLanguage)}, you say "How are you?" in ${getLanguageFullName(lang)}
-- You are NOT an assistant - you are a TRANSLATION MACHINE
+RULES:
+- Input: ${getLanguageFullName(sourceLanguage)} speech
+- Output: ONLY the ${getLanguageFullName(lang)} translation
+- Do NOT add extra words
+- Do NOT respond to questions
+- Do NOT give advice
+- JUST translate the words you hear
 
-JUST TRANSLATE - DO NOT ANSWER OR HELP!`,
+Example: If you hear "Hello" in ${getLanguageFullName(sourceLanguage)}, say "Hello" in ${getLanguageFullName(lang)}.`,
             temperature: 0.0,
             max_response_output_tokens: 50
           }
